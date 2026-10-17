@@ -1,0 +1,149 @@
+# Delhivery Last-Mile Delay Intelligence Pipeline
+
+## Project Overview
+This project builds a shipment-delay intelligence pipeline using historical
+shipment data. It covers data cleaning, exploratory analysis, delivery-time
+regression, delay classification, hub segmentation, model packaging, and
+predictions for new shipments.
+
+## How to Run
+Run commands from the project root directory.
+
+1. Install the pinned dependencies:
+   `pip install -r requirements.txt`
+
+2. Generate the supplied synthetic data:
+   `python generate_data.py`
+
+3. Run Part A:
+   `python part_a_clean_eda.py`
+
+4. Run Part B:
+   `python part_b_regression.py`
+
+5. Run Part C:
+   `python part_c_classification.py`
+
+6. Run Part D:
+   `python part_d_segments.py`
+
+7. Package the model:
+   `python package_model.py`
+
+8. Generate predictions for new shipments:
+   `python predict_delay.py`
+
+Run packaging before prediction so the saved model and supporting files exist.
+Use the supplied data generator unchanged. Do not manually edit generated CSVs.
+
+## Data Findings
+- The raw shipment dataset contained 1,224 rows.
+- Exact duplicate removal left 1,200 unique historical shipments.
+- The historical delay rate was approximately 23.17% (278 of 1,200).
+- Missing values and invalid weight sentinels were handled during preprocessing.
+- Service-type spellings were normalized before modelling.
+- The modelling table had no missing values in the required features and target.
+- The dataset is synthetic; findings should not be treated as actual Delhivery
+  operational measurements.
+
+## Model Results — Regression
+The final linear regression model achieved these test-set results:
+- MAE: 3.57 hours
+- RMSE: 4.52 hours
+- R-squared: 0.949
+
+On validation data, linear regression achieved an RMSE of approximately
+4.89 hours. Gradient boosting was competitive, with validation RMSE of
+approximately 4.92 hours. Model selection considered validation performance
+and cross-validation rather than training error alone.
+
+## Model Results — Classification
+The selected classifier uses SelectKBest with seven features and a
+Random Forest with 100 trees. The classification threshold is 0.50.
+
+Held-out test results:
+- Accuracy: 86.11%
+- Precision: 68.18%
+- Recall: 73.17%
+- F1-score: 70.59%
+
+On the test set, 30 of 41 delayed shipments were detected, while 11 delayed
+shipments were missed. Of 44 flagged shipments, 30 were delayed and 14 were
+not delayed. This is a small test set, so the metrics have uncertainty.
+
+Distance was the strongest feature by univariate F-score. Other leading
+features included hub tier, hub daily capacity, number of stops, promised
+hours, rain, and sale-event status. Several deliberately noisy columns had
+low univariate scores; their combined Random Forest importance was not zero,
+so feature importance should be interpreted cautiously.
+
+The default forest using seven features achieved a validation F1-score of
+approximately 0.847. Hyperparameter tuning did not improve that validation
+score in this experiment, so the simpler default configuration was retained.
+The threshold balances precision and recall; changing it alters the number
+of alerts and missed delays.
+
+## Hub Segmentation
+K-Means with K=3 was selected for operational interpretability:
+- Standard: 7 hubs; mean delivery time about 47.24 hours; delay rate about 2.57%.
+- Watch: 8 hubs; mean delivery time about 56.81 hours; delay rate about 15.50%.
+- Escalate: 9 hubs; mean delivery time about 64.65 hours; delay rate about 46.00%.
+
+K=4 and K=5 had higher separation ratios, but produced clusters with fewer
+than six hubs. K=3 therefore offers a more practical balance of separation
+and cluster size.
+
+Four hubs differed between their assigned segment and the existing tier:
+HUB07, HUB13, HUB15, and HUB22. Tier and segment describe different things:
+tier is the supplied hub category, while segment is derived from observed
+shipment patterns. A mismatch should prompt investigation, not automatic
+reclassification.
+
+## Operations Recommendation
+- Review Escalate hubs first, especially where shipment delay rates are high.
+- Use Watch hubs for daily monitoring and targeted operational checks.
+- Keep Standard hubs under routine monitoring; do not assume their risk is zero.
+- Use classification alerts to prioritize follow-up, not as a guarantee that
+  a parcel will be delayed.
+- The 0.50 threshold produced test precision of about 68% and recall of about
+  73%. In this test set, roughly 7 of every 10 alerts were actual delays, and
+  roughly 7 of every 10 delayed shipments were detected.
+- For the 48 new shipments, 8 were flagged: 6 require escalation to a hub
+  manager and 2 require a proactive customer call. The remaining 40 require
+  no action under the current rule.
+- Validate the hub assignments and predictions with operational teams before
+  making high-impact decisions.
+
+## Production Plan
+1. Accuracy: track MAE/RMSE for delivery-time estimates and precision, recall,
+   and F1 for delay alerts. Investigate a sustained 20% relative increase in
+   regression RMSE or a 10-percentage-point fall in recall.
+2. Reliability: validate input columns, data types, missing values, and
+   prediction outputs. Alert if more than 1% of incoming rows fail validation.
+3. Reproducibility: keep the supplied generator unchanged, use fixed random
+   seeds, and retain the saved preprocessing and model artifacts.
+4. Performance: measure batch runtime and throughput. Investigate a batch
+   taking more than twice its established baseline.
+5. Maintainability: keep preprocessing in the shared shipment preparation
+   module and document model and feature changes.
+6. Consistency: apply the same imputation, feature construction, and feature
+   ordering at training and prediction time.
+7. Monitorability: log prediction volumes, flagged rates, missing/invalid
+   inputs, and delayed outcomes once labels become available.
+
+Review operational metrics weekly. Retrain monthly at first, or earlier if
+monitoring thresholds are breached and sufficient verified labels are
+available. Revalidate before deployment. For the 15–28 September sale window,
+compare performance with similar sale periods, not ordinary weeks, because
+sale-related demand can change shipment patterns and create data drift.
+
+## Limitations
+- The dataset is synthetic and may not represent real-world delivery operations.
+- The classification test set contains only 41 delayed shipments; results can
+  change materially with a small number of different predictions.
+- The threshold was evaluated using one validation split and may not generalize.
+- Feature importance does not establish causation.
+- Predictions and segment labels require validation against real operational
+  outcomes before production use.
+- The packaged pickle model should be loaded with the pinned scikit-learn
+  version used to create it. Repackage the model if dependency versions differ.
