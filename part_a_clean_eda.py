@@ -1,17 +1,20 @@
 
-import os
+from pathlib import Path
 import sys
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, "/content")
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 from src.shipment_prep import clean_shipments, build_features
 
-os.makedirs("/content/data", exist_ok=True)
-os.makedirs("/content/outputs", exist_ok=True)
+data_dir = ROOT / "data"
+outputs_dir = ROOT / "outputs"
+data_dir.mkdir(parents=True, exist_ok=True)
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
-raw = pd.read_csv("/content/data/raw_shipments.csv")
-hubs = pd.read_csv("/content/data/hubs.csv")
+raw = pd.read_csv(data_dir / "raw_shipments.csv")
+hubs = pd.read_csv(data_dir / "hubs.csv")
 
 # Clean data and build features
 clean_df, medians = clean_shipments(raw)
@@ -23,7 +26,7 @@ df["is_delayed"] = (
 ).astype(int)
 
 # Save modelling table
-df.to_csv("/content/data/modelling_table.csv", index=False)
+df.to_csv(data_dir / "modelling_table.csv", index=False)
 
 # Basic checks
 checks = [
@@ -38,7 +41,7 @@ checks = [
 ]
 
 pd.DataFrame(checks, columns=["metric", "value"]).to_csv(
-    "/content/outputs/part_a_checks.csv", index=False
+    outputs_dir / "part_a_checks.csv", index=False
 )
 
 # Delay rate by service type, hub tier, and distance band
@@ -65,7 +68,7 @@ for dimension in ["service_type", "hub_tier", "distance_band"]:
     group_results.append(grouped)
 
 pd.concat(group_results, ignore_index=True).to_csv(
-    "/content/outputs/part_a_delay_by_group.csv",
+    outputs_dir / "part_a_delay_by_group.csv",
     index=False,
     float_format="%.4f",
 )
@@ -73,7 +76,7 @@ pd.concat(group_results, ignore_index=True).to_csv(
 # Numeric correlation matrix
 numeric_df = df.select_dtypes(include="number")
 numeric_df.corr().to_csv(
-    "/content/outputs/part_a_correlations.csv",
+    outputs_dir / "part_a_correlations.csv",
     index=True,
     float_format="%.4f",
 )
@@ -82,7 +85,7 @@ print("Part A completed!")
 print("Modelling table:", df.shape)
 print("Delayed shipments:", int(df["is_delayed"].sum()))
 print("\nFiles created:")
-print("/content/data/modelling_table.csv")
-print("/content/outputs/part_a_checks.csv")
-print("/content/outputs/part_a_delay_by_group.csv")
-print("/content/outputs/part_a_correlations.csv")
+print(data_dir / "modelling_table.csv")
+print(outputs_dir / "part_a_checks.csv")
+print(outputs_dir / "part_a_delay_by_group.csv")
+print(outputs_dir / "part_a_correlations.csv")

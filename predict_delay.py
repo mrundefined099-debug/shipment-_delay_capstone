@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-ROOT = Path("/content")
+ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from shipment_prep import clean_shipments, build_features

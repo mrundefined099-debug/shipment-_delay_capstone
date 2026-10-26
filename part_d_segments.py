@@ -1,5 +1,5 @@
 
-import os
+from pathlib import Path
 import sys
 import numpy as np
 import pandas as pd
@@ -8,11 +8,13 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from scipy.spatial.distance import pdist
 
-sys.path.insert(0, "/content")
-os.makedirs("/content/outputs", exist_ok=True)
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+outputs_dir = ROOT / "outputs"
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
 # Load the cleaned modelling table
-df = pd.read_csv("/content/data/modelling_table.csv")
+df = pd.read_csv(ROOT / "data" / "modelling_table.csv")
 
 # 1. Build hub profile, sorted by hub_id
 profile = (
@@ -28,7 +30,7 @@ profile = (
       .reset_index(drop=True)
 )
 
-profile.to_csv("/content/outputs/hub_profile.csv", index=False, float_format="%.4f")
+profile.to_csv(outputs_dir / "hub_profile.csv", index=False, float_format="%.4f")
 
 # 2. Scale the four profile features in the required order
 cluster_features = [
@@ -66,7 +68,7 @@ for k in [2, 3, 4, 5]:
     })
 
 pd.DataFrame(separation_rows).to_csv(
-    "/content/outputs/part_d_separation.csv",
+    outputs_dir / "part_d_separation.csv",
     index=False,
     float_format="%.4f"
 )
@@ -90,7 +92,7 @@ segment_names = {
 profile["segment"] = profile["cluster"].map(segment_names)
 
 # Attach city and tier from hubs.csv
-hubs = pd.read_csv("/content/data/hubs.csv")
+hubs = pd.read_csv(ROOT / "data" / "hubs.csv")
 hub_segments = profile[["hub_id", "segment"]].merge(
     hubs[["hub_id", "hub_city", "hub_tier"]],
     on="hub_id",
@@ -103,7 +105,7 @@ hub_segments = hub_segments[
 ].sort_values("hub_id")
 
 hub_segments.to_csv(
-    "/content/outputs/hub_segments.csv", index=False
+    outputs_dir / "hub_segments.csv", index=False
 )
 
 # Segment profiles are means of the hub-level values
@@ -126,7 +128,7 @@ segment_profile = (
 )
 
 segment_profile.to_csv(
-    "/content/outputs/segment_profile.csv",
+    outputs_dir / "segment_profile.csv",
     index=False,
     float_format="%.4f"
 )
@@ -147,7 +149,7 @@ mismatches = hub_segments[
 ].copy()
 
 mismatches.to_csv(
-    "/content/outputs/tier_vs_segment_mismatch.csv",
+    outputs_dir / "tier_vs_segment_mismatch.csv",
     index=False
 )
 

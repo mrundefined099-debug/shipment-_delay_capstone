@@ -1,5 +1,5 @@
 
-import os
+from pathlib import Path
 import sys
 import warnings
 import numpy as np
@@ -14,14 +14,16 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 warnings.filterwarnings("ignore")
-sys.path.insert(0, "/content")
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
 from src.shipment_prep import FEATURES
 
-os.makedirs("/content/outputs", exist_ok=True)
+outputs_dir = ROOT / "outputs"
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. Load data and create fixed train/validation/test splits
-df = pd.read_csv("/content/data/modelling_table.csv")
+df = pd.read_csv(ROOT / "data" / "modelling_table.csv")
 
 X = df[FEATURES]
 y = df["delivery_hours"]
@@ -51,7 +53,7 @@ checks = [
 ]
 
 pd.DataFrame(checks, columns=["metric", "value"]).to_csv(
-    "/content/outputs/part_b_checks.csv",
+    outputs_dir / "part_b_checks.csv",
     index=False,
     float_format="%.10f"
 )
@@ -104,7 +106,7 @@ for depth in depths:
 
 depth_df = pd.DataFrame(depth_results)
 depth_df.to_csv(
-    "/content/outputs/part_b_tree_depth.csv",
+    outputs_dir / "part_b_tree_depth.csv",
     index=False,
     float_format="%.4f"
 )
@@ -182,7 +184,7 @@ for rate in [0.01, 0.1, 1.0]:
     })
 
 pd.DataFrame(gb_rows).to_csv(
-    "/content/outputs/part_b_gb_learning_rate.csv",
+    outputs_dir / "part_b_gb_learning_rate.csv",
     index=False,
     float_format="%.4f"
 )
@@ -218,7 +220,7 @@ for name in ranked_models[:2]:
     })
 
 pd.DataFrame(cv_rows).to_csv(
-    "/content/outputs/part_b_cv.csv",
+    outputs_dir / "part_b_cv.csv",
     index=False,
     float_format="%.4f"
 )
@@ -240,7 +242,7 @@ metrics_df = metrics_df[
     ["model", "split", "MAE", "MSE", "RMSE", "R2"]
 ]
 metrics_df.to_csv(
-    "/content/outputs/part_b_metrics.csv",
+    outputs_dir / "part_b_metrics.csv",
     index=False,
     float_format="%.4f"
 )
@@ -270,7 +272,7 @@ print(pd.DataFrame(cv_rows).to_string(index=False))
 print(f"\nBest model by validation RMSE: {winner}")
 print(f"Selected Decision Tree depth: "
       f"{'unlimited' if best_depth is None else best_depth}")
-print("\nFiles saved in /content/outputs/")
+print(f"\nFiles saved in {outputs_dir}/")
 print(" - part_b_checks.csv")
 print(" - part_b_tree_depth.csv")
 print(" - part_b_metrics.csv")

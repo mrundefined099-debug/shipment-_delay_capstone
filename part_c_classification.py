@@ -1,5 +1,5 @@
 
-import os
+from pathlib import Path
 import sys
 import json
 import warnings
@@ -21,14 +21,16 @@ from sklearn.metrics import (
 )
 
 warnings.filterwarnings("ignore")
-sys.path.insert(0, "/content")
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
 
 from src.shipment_prep import FEATURES, NOISE_COLUMNS
 
-os.makedirs("/content/outputs", exist_ok=True)
+outputs_dir = ROOT / "outputs"
+outputs_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. Load data and make stratified train/validation/test splits
-df = pd.read_csv("/content/data/modelling_table.csv")
+df = pd.read_csv(ROOT / "data" / "modelling_table.csv")
 X = df[FEATURES]
 y = df["is_delayed"].astype(int)
 
@@ -119,7 +121,7 @@ model_rows.append({
 })
 
 pd.DataFrame(model_rows).to_csv(
-    "/content/outputs/part_c_models.csv",
+    outputs_dir / "part_c_models.csv",
     index=False, float_format="%.4f"
 )
 
@@ -147,7 +149,7 @@ feature_score_df = feature_score_df[
 ].sort_values(["f_rank", "feature"])
 
 feature_score_df.to_csv(
-    "/content/outputs/part_c_feature_scores.csv",
+    outputs_dir / "part_c_feature_scores.csv",
     index=False, float_format="%.4f"
 )
 
@@ -168,7 +170,7 @@ for k in [5, 7, 10, 12, 17]:
     })
 
 pd.DataFrame(selectk_rows).to_csv(
-    "/content/outputs/part_c_selectk.csv",
+    outputs_dir / "part_c_selectk.csv",
     index=False, float_format="%.4f"
 )
 
@@ -247,7 +249,7 @@ for name, candidates, folds, total_fits, params, cv_score, model in [
 
 tuning_df = pd.DataFrame(tuning_rows)
 tuning_df.to_csv(
-    "/content/outputs/part_c_tuning.csv",
+    outputs_dir / "part_c_tuning.csv",
     index=False, float_format="%.4f"
 )
 
@@ -298,7 +300,7 @@ for threshold in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
 
 threshold_df = pd.DataFrame(threshold_rows)
 threshold_df.to_csv(
-    "/content/outputs/part_c_thresholds.csv",
+    outputs_dir / "part_c_thresholds.csv",
     index=False, float_format="%.4f"
 )
 
@@ -317,7 +319,7 @@ test_result = {
 }
 
 pd.DataFrame([test_result]).to_csv(
-    "/content/outputs/part_c_final_test.csv",
+    outputs_dir / "part_c_final_test.csv",
     index=False, float_format="%.4f"
 )
 
@@ -335,7 +337,7 @@ config = pd.DataFrame([{
 }])
 
 config.to_csv(
-    "/content/outputs/part_c_final_config.csv",
+    outputs_dir / "part_c_final_config.csv",
     index=False
 )
 
