@@ -134,14 +134,19 @@ segment_profile.to_csv(
 )
 
 # Compare each hub's segment with the segment implied by its tier
-tier_to_segment = {
-    "Tier 1": "Standard",
-    "Tier 2": "Watch",
-    "Tier 3": "Escalate",
-}
+def expected_segment_from_tier(value):
+    text = str(value).strip()
+    if text in {"1", "Tier 1"}:
+        return "Standard"
+    if text in {"2", "Tier 2"}:
+        return "Watch"
+    if text in {"3", "Tier 3"}:
+        return "Escalate"
+    return np.nan
 
-hub_segments["tier_expected_segment"] = (
-    hub_segments["hub_tier"].map(tier_to_segment)
+
+hub_segments["tier_expected_segment"] = hub_segments["hub_tier"].map(
+    expected_segment_from_tier
 )
 
 mismatches = hub_segments[
